@@ -93,7 +93,7 @@ const StyledText: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-// Component to structure the message (Headers, Lists, Paragraphs)
+// Component to structure the message (Headers, Lists, Paragraphs, Blockquotes)
 const MessageContentRenderer: React.FC<{ content: string; role: 'user' | 'model' }> = ({ content, role }) => {
   if (role === 'user') {
     return <div className="whitespace-pre-wrap">{content}</div>;
@@ -113,18 +113,29 @@ const MessageContentRenderer: React.FC<{ content: string; role: 'user' | 'model'
         // Handle Headers: ### Title
         if (trimmed.startsWith('### ')) {
           return (
-            <h3 key={idx} className="text-base font-bold text-slate-900 mt-4 mb-2">
+            <h3 key={idx} className="text-base font-bold text-slate-900 mt-5 mb-2 flex items-center gap-2">
+              <div className="w-1 h-4 bg-jinwu-500 rounded-full"></div>
               <StyledText text={trimmed.slice(4)} />
             </h3>
           );
         }
         
-        // Handle Headers: ## Title
-        if (trimmed.startsWith('## ')) {
+        // Handle Headers: ## Title or #### Title
+        if (trimmed.startsWith('## ') || trimmed.startsWith('#### ')) {
+           const text = trimmed.replace(/^#+\s/, '');
+           return (
+            <h4 key={idx} className="text-sm font-bold text-slate-800 mt-4 mb-1">
+              <StyledText text={text} />
+            </h4>
+          );
+        }
+
+        // Handle Blockquotes: > Text
+        if (trimmed.startsWith('> ')) {
           return (
-            <h2 key={idx} className="text-base font-bold text-slate-900 mt-4 mb-2 border-b border-slate-100 pb-1">
-              <StyledText text={trimmed.slice(3)} />
-            </h2>
+            <div key={idx} className="border-l-4 border-jinwu-400 bg-slate-50 pl-3 py-2 my-2 text-slate-600 italic rounded-r text-xs md:text-sm">
+              <StyledText text={trimmed.slice(2)} />
+            </div>
           );
         }
 
@@ -132,7 +143,7 @@ const MessageContentRenderer: React.FC<{ content: string; role: 'user' | 'model'
         if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
           return (
             <div key={idx} className="flex gap-2 ml-1">
-              <span className="text-jinwu-500 font-bold">•</span>
+              <span className="text-jinwu-500 font-bold leading-6">•</span>
               <p className="flex-1">
                 <StyledText text={trimmed.slice(2)} />
               </p>
@@ -140,12 +151,12 @@ const MessageContentRenderer: React.FC<{ content: string; role: 'user' | 'model'
           );
         }
 
-        // Handle Numbered Lists: 1. Item (Simple detection)
+        // Handle Numbered Lists: 1. Item
         if (/^\d+\.\s/.test(trimmed)) {
            const dotIndex = trimmed.indexOf('.');
            return (
              <div key={idx} className="flex gap-2 ml-1">
-               <span className="text-slate-600 font-medium min-w-[1.2rem]">{trimmed.substring(0, dotIndex + 1)}</span>
+               <span className="text-slate-600 font-bold min-w-[1.2rem]">{trimmed.substring(0, dotIndex + 1)}</span>
                <p className="flex-1">
                  <StyledText text={trimmed.substring(dotIndex + 1).trim()} />
                </p>
@@ -153,9 +164,19 @@ const MessageContentRenderer: React.FC<{ content: string; role: 'user' | 'model'
            );
         }
 
+        // Handle "Standalone Bold Line" as Header (e.g. **1. Analysis**)
+        // If the line starts and ends with **, and is short enough to be a title
+        if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 50) {
+           return (
+             <h4 key={idx} className="text-sm font-bold text-slate-900 mt-4 mb-1">
+               {trimmed.slice(2, -2)}
+             </h4>
+           );
+        }
+
         // Empty lines
         if (!trimmed) {
-          return <div key={idx} className="h-1" />;
+          return <div key={idx} className="h-2" />;
         }
 
         // Standard Paragraph
